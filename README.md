@@ -12,3 +12,9 @@ A Python-based GUI application that converts Markdown files to PDF using multipl
    ```bash
     pip install -r requirements.txt
     ```
+
+3. Install playwright browsers:
+
+   ```bash
+   playwright install
+   ```

@@ -1,9 +1,9 @@
 """
 DasMDF - Markdown to PDF Converter
-CustomTkinter Version - wkhtmltopdf Engine Integration
+CustomTkinter Version - Playwright Engine Integration
 
 A simple GUI application for converting Markdown files to PDF format.
-Now uses wkhtmltopdf engine via pdfkit wrapper.
+Now uses Playwright engine with Chromium browser for high-quality PDF generation.
 """
 
 import customtkinter as ctk
@@ -14,15 +14,14 @@ import os
 import tempfile
 import webbrowser
 import markdown2
-import pdfkit
-import subprocess
+import asyncio
+from pygments.formatters import HtmlFormatter
+from playwright.async_api import async_playwright
 
 class MarkdownToPDFConverter:
     def __init__(self):
         self.setup_window()
         self.create_widgets()
-        
-        self.wkhtmltopdf_path = self.find_wkhtmltopdf()
     
     def setup_window(self):
         ctk.set_appearance_mode("system")
@@ -129,6 +128,11 @@ def hello_world():
 
 ### Testing emojis 😊👍
 
+### Latex Example
+Hello guys $\int_{0}^{1}\sin(x^2)dx$
+
+$$ \int_{0}^{1}\sin(x^2)dx $$
+
 """
         self.md_textbox.insert("1.0", default_md)
         
@@ -228,8 +232,9 @@ th {
     def md_to_html(self, md_content, css_content):
         """Convert markdown to HTML with CSS styling."""
         # Convert markdown to HTML
-        html_body = markdown2.markdown(md_content, extras=['tables', 'fenced-code-blocks', 'codehilite'])
-        
+        html_body = markdown2.markdown(md_content, extras=['strike', 'fenced-code-blocks', 'codehilite', 'tables', 'toc', 'attr_list', 'latex'])
+        pygments_css = HtmlFormatter(style="default").get_style_defs('.codehilite')
+
         # Create full HTML document
         html_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -238,8 +243,16 @@ th {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DasMDF Preview</title>
     <style>
+    pre, code {{
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            }}
         {css_content}
+        {pygments_css}
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
     {html_body}
@@ -273,29 +286,26 @@ th {
         except Exception as e:
             messagebox.showerror("Error", f"Failed to create preview: {e}")
     
-    def find_wkhtmltopdf(self):
-        """Find wkhtmltopdf executable"""
-        # Common installation paths
-        common_paths = [
-            r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe",
-            r"C:\Program Files (x86)\wkhtmltopdf\bin\wkhtmltopdf.exe",
-            "wkhtmltopdf"  # If in PATH
-        ]
-        
-        for path in common_paths:
-            try:
-                if os.path.exists(path):
-                    return path
-                elif path == "wkhtmltopdf":
-                    # Check if in PATH
-                    subprocess.run([path, "--version"], capture_output=True, check=True)
-                    return path
-            except:
-                continue
-        return None
-
+    async def html_to_pdf_async(self, html_content, output_path):
+        """Convert HTML to PDF using Playwright asynchronously."""
+        async with async_playwright() as p:
+            browser = await p.chromium.launch()
+            page = await browser.new_page()
+            
+            # Set HTML content and wait for network idle
+            await page.set_content(html_content, wait_until="networkidle")
+            
+            # Generate PDF with options
+            await page.pdf(
+                path=output_path,
+                format='A4',
+                print_background=True
+            )
+            
+            await browser.close()
+    
     def convert_pdf(self):
-        """Convert markdown to PDF using wkhtmltopdf."""
+        """Convert markdown to PDF using Playwright."""
         md_content = self.md_textbox.get("1.0", tk.END).strip()
         css_content = self.css_textbox.get("1.0", tk.END).strip()
         
@@ -317,23 +327,9 @@ th {
             # Convert to HTML
             html_content = self.md_to_html(md_content, css_content)
             
-            # Configure wkhtmltopdf options
-            options = {
-                'page-size': 'A4',
-                'margin-top': '0.75in',
-                'margin-right': '0.75in',
-                'margin-bottom': '0.75in',
-                'margin-left': '0.75in',
-                'encoding': "UTF-8",
-                'no-outline': None
-            }
+            # Run async conversion
+            asyncio.run(self.html_to_pdf_async(html_content, file_path))
             
-             # Set the path to wkhtmltopdf if we found it
-            config = pdfkit.configuration(wkhtmltopdf=self.wkhtmltopdf_path) if self.wkhtmltopdf_path != "wkhtmltopdf" else None
-            
-            # Convert to PDF using pdfkit
-            pdfkit.from_string(html_content, file_path, options=options, configuration=config)
-
             messagebox.showinfo("Success", f"PDF saved successfully!\nLocation: {file_path}")
             
         except Exception as e:
