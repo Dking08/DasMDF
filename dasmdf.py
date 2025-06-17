@@ -1,24 +1,28 @@
 """
 DasMDF - Markdown to PDF Converter
-CustomTkinter Version - WeasyPrint Engine Integration
+CustomTkinter Version - wkhtmltopdf Engine Integration
 
 A simple GUI application for converting Markdown files to PDF format.
-Now includes WeasyPrint engine and HTML preview functionality.
+Now uses wkhtmltopdf engine via pdfkit wrapper.
 """
 
 import customtkinter as ctk
 import tkinter as tk
 from tkinter import filedialog, messagebox
+import sys
 import os
 import tempfile
 import webbrowser
 import markdown2
-from weasyprint import HTML
+import pdfkit
+import subprocess
 
 class MarkdownToPDFConverter:
     def __init__(self):
         self.setup_window()
         self.create_widgets()
+        
+        self.wkhtmltopdf_path = self.find_wkhtmltopdf()
     
     def setup_window(self):
         ctk.set_appearance_mode("system")
@@ -105,7 +109,7 @@ This is a **sample** markdown document for testing.
 ## Features
 - Easy markdown editing
 - Custom CSS styling
-- PDF conversion with WeasyPrint
+- PDF conversion with wkhtmltopdf
 
 ### Code Example
 ````python
@@ -122,6 +126,9 @@ def hello_world():
 | CSS | ✓ |
 | Preview | ✓ |
 | PDF Export | ✓ |
+
+### Testing emojis 😊👍
+
 """
         self.md_textbox.insert("1.0", default_md)
         
@@ -261,14 +268,34 @@ th {
                 temp_file = f.name
             
             # Open in browser
-            webbrowser.open(f'file://{os.path.abspath(temp_file)}')
-            messagebox.showinfo("Preview", "Preview opened in your default browser!")
+            webbrowser.open(f'file://{temp_file}')
             
         except Exception as e:
             messagebox.showerror("Error", f"Failed to create preview: {e}")
     
+    def find_wkhtmltopdf(self):
+        """Find wkhtmltopdf executable"""
+        # Common installation paths
+        common_paths = [
+            r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe",
+            r"C:\Program Files (x86)\wkhtmltopdf\bin\wkhtmltopdf.exe",
+            "wkhtmltopdf"  # If in PATH
+        ]
+        
+        for path in common_paths:
+            try:
+                if os.path.exists(path):
+                    return path
+                elif path == "wkhtmltopdf":
+                    # Check if in PATH
+                    subprocess.run([path, "--version"], capture_output=True, check=True)
+                    return path
+            except:
+                continue
+        return None
+
     def convert_pdf(self):
-        """Convert markdown to PDF using WeasyPrint."""
+        """Convert markdown to PDF using wkhtmltopdf."""
         md_content = self.md_textbox.get("1.0", tk.END).strip()
         css_content = self.css_textbox.get("1.0", tk.END).strip()
         
@@ -290,10 +317,23 @@ th {
             # Convert to HTML
             html_content = self.md_to_html(md_content, css_content)
             
-            # Convert HTML to PDF using WeasyPrint
-            html_doc = HTML(string=html_content)
-            html_doc.write_pdf(file_path)
+            # Configure wkhtmltopdf options
+            options = {
+                'page-size': 'A4',
+                'margin-top': '0.75in',
+                'margin-right': '0.75in',
+                'margin-bottom': '0.75in',
+                'margin-left': '0.75in',
+                'encoding': "UTF-8",
+                'no-outline': None
+            }
             
+             # Set the path to wkhtmltopdf if we found it
+            config = pdfkit.configuration(wkhtmltopdf=self.wkhtmltopdf_path) if self.wkhtmltopdf_path != "wkhtmltopdf" else None
+            
+            # Convert to PDF using pdfkit
+            pdfkit.from_string(html_content, file_path, options=options, configuration=config)
+
             messagebox.showinfo("Success", f"PDF saved successfully!\nLocation: {file_path}")
             
         except Exception as e:
