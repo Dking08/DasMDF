@@ -7,6 +7,7 @@ Now includes WeasyPrint engine and HTML preview functionality.
 """
 
 from pathlib import Path
+import threading
 import customtkinter as ctk
 import tkinter as tk
 from tkinter import filedialog, messagebox
@@ -14,11 +15,17 @@ import os
 import tempfile
 import webbrowser
 import markdown2
+import pdfkit
 from pygments.formatters import HtmlFormatter
 from weasyprint import HTML
+import subprocess
+import asyncio
+from playwright.async_api import async_playwright
 
 class MarkdownToPDFConverter:
     def __init__(self):
+        self.wkhtmltopdf_path = self.find_wkhtmltopdf()
+        self.engine="playwright"
         self.setup_window()
         self.create_widgets()
     
@@ -71,7 +78,7 @@ class MarkdownToPDFConverter:
         # Button container
         buttons_container = ctk.CTkFrame(main_container)
         buttons_container.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
-        buttons_container.grid_columnconfigure((0, 1, 2, 3), weight=1)
+        buttons_container.grid_columnconfigure((0, 1, 2, 3, 4, 5), weight=1)
         
         # Buttons
         load_md_btn = ctk.CTkButton(
@@ -99,6 +106,25 @@ class MarkdownToPDFConverter:
             hover_color="darkgray"
         )
         preview_btn.grid(row=0, column=2, padx=5, pady=10, sticky="ew")
+
+        # Engine selection dropdown
+        self.engine_var = tk.StringVar(value="playwright")
+        engine_label = ctk.CTkLabel(
+            buttons_container,
+            text="Engine:",
+            font=ctk.CTkFont(size=14)
+        )
+        engine_label.grid(row=0, column=3, padx=5, pady=10, sticky="ew")
+
+        engine_options = ["playwright","weasyprint", "wkhtml"]
+        engine_menu = ctk.CTkOptionMenu(
+            buttons_container,
+            variable=self.engine_var,
+            values=engine_options,
+            # width=120
+        )
+        engine_menu.grid(row=0, column=4, padx=5, pady=10, sticky="ew")
+        
         
         convert_btn = ctk.CTkButton(
             buttons_container,
@@ -108,7 +134,7 @@ class MarkdownToPDFConverter:
             fg_color="green",
             hover_color="darkgreen"
         )
-        convert_btn.grid(row=0, column=3, padx=5, pady=10, sticky="ew")
+        convert_btn.grid(row=0, column=5, padx=5, pady=10, sticky="ew")
         
         # Progress bar
         self.progress_bar = ctk.CTkProgressBar(main_container)
@@ -248,7 +274,7 @@ th {
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load file: {e}")
     
-    def md_to_html(self, md_content, css_content):
+    def md_to_html(self, md_content, css_content, pdfTitle="DasMDF Preview"):
         """Convert markdown to HTML with CSS styling."""
         # Convert markdown to HTML
         html_body = markdown2.markdown(md_content, extras=['strike', 'fenced-code-blocks', 'codehilite', 'tables', 'toc', 'attr_list', 'latex'])
@@ -260,7 +286,7 @@ th {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DasMDF Preview</title>
+    <title>{pdfTitle}</title>
     <style>
     pre, code {{
             white-space: pre-wrap;
@@ -307,40 +333,184 @@ th {
             messagebox.showerror("Error", f"Failed to create preview: {e}")
     
     def convert_pdf(self):
-        """Convert markdown to PDF using WeasyPrint."""
+        """Convert markdown to PDF using the selected engine."""
+        self.update_status("Starting PDF conversion...")
         self.progress_bar.set(0.1)
-        self.update_status("Preparing conversion...")
-    
-        md_content = self.md_textbox.get("1.0", tk.END).strip()
-        css_content = self.css_textbox.get("1.0", tk.END).strip()
-        
+
+        self.engine = self.engine_var.get()
+        if self.engine not in ["playwright","weasyprint", "wkhtml"]:   
+            messagebox.showerror("Error", "Invalid conversion engine selected!")
+            return
+
+        md_content = self.md_textbox.get("0.0", "end-1c").strip()
         if not md_content:
-            messagebox.showwarning("Warning", "Please add some markdown content!")
+            messagebox.showerror("Error", "No markdown content to convert!")
             return
         
-        self.progress_bar.set(0.3)
-        self.update_status("Converting Markdown to HTML...")
-        # Ask for save location
-        file_path = filedialog.asksaveasfilename(
+        output_path = filedialog.asksaveasfilename(
             title="Save PDF As",
             defaultextension=".pdf",
             filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")]
         )
+
+        # Show a dialog to enter the PDF title
+        # Extract the default title from the output file name (without extension)
+        default_title = Path(output_path).stem
+
+        # title_dialog = ctk.CTkInputDialog(
+        #     title="Save as PDF",
+        #     text="Please enter a title for your PDF:"
+        # )
+
+        # pdfTitle = title_dialog.get_input()
+        pdfTitle=default_title
+
+        # Exit if the user cancels the dialog (closes or presses cancel)
+        if pdfTitle is None:
+            return
+        
+        if output_path:
+            if self.engine == "weasyprint":
+                thread = threading.Thread(target=self.convert_to_pdf_thread_weasyprint, args=(output_path,pdfTitle))
+                thread.daemon = True
+                thread.start()
+            elif self.engine == "wkhtml":
+                thread = threading.Thread(target=self.convert_to_pdf_thread_wkhtml, args=(output_path,pdfTitle))
+                thread.daemon = True
+                thread.start()
+            elif self.engine == "playwright":
+                thread = threading.Thread(target=self.convert_to_pdf_thread_playwright, args=(output_path,pdfTitle))
+                thread.daemon = True
+                thread.start()
+
+        # """Convert markdown to PDF using WeasyPrint."""
+        # self.progress_bar.set(0.1)
+        # self.update_status("Preparing conversion...")
+    
+        # md_content = self.md_textbox.get("1.0", tk.END).strip()
+        # css_content = self.css_textbox.get("1.0", tk.END).strip()
+        
+        # if not md_content:
+        #     messagebox.showwarning("Warning", "Please add some markdown content!")
+        #     return
+        
+        # self.progress_bar.set(0.3)
+        # self.update_status("Converting Markdown to HTML...")
+        # # Ask for save location
+        # file_path = filedialog.asksaveasfilename(
+        #     title="Save PDF As",
+        #     defaultextension=".pdf",
+        #     filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")]
+        # )
+        
+        # if not file_path:
+        #     return
+        
+        # try:
+
+        #     self.progress_bar.set(0.7)
+        #     self.update_status("Generating PDF with WeasyPrint...")
+
+        #     # Convert to HTML
+        #     html_content = self.md_to_html(md_content, css_content)
+            
+        #     # Convert HTML to PDF using WeasyPrint
+        #     html_doc = HTML(string=html_content)
+        #     html_doc.write_pdf(file_path)
+
+        #     self.progress_bar.set(1.0)
+        #     self.update_status(f"PDF saved successfully: {Path(file_path).name}")
+
+        #     if messagebox.askyesno("Success", f"PDF created successfully!\n\nFile: {Path(file_path).name}\n\nOpen the file now?"):
+        #         if os.name == 'nt':
+        #             os.startfile(file_path)
+        #         elif sys.platform == 'darwin':
+        #             subprocess.run(['open', output_path])
+        #         else:
+        #             subprocess.run(['xdg-open', output_path])
+            
+        # except Exception as e:
+        #     messagebox.showerror("Error", f"Failed to convert to PDF: {e}")
+    
+    def find_wkhtmltopdf(self):
+        """Find the wkhtmltopdf executable in the system PATH."""
+        # First, try searching in PATH
+        for path in os.environ["PATH"].split(os.pathsep):
+            exe_path = Path(path) / "wkhtmltopdf"
+            if exe_path.exists() and exe_path.is_file():
+                return str(exe_path)
+
+        # Then, try common installation paths (Windows)
+        common_paths = [
+            r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe",
+            r"C:\Program Files (x86)\wkhtmltopdf\bin\wkhtmltopdf.exe",
+            "wkhtmltopdf"  # If in PATH as a command
+        ]
+        for path in common_paths:
+            try:
+                if os.path.exists(path):
+                    return path
+                elif path == "wkhtmltopdf":
+                    subprocess.run([path, "--version"], capture_output=True, check=True)
+                    return path
+            except Exception:
+                continue
+        return None
+    
+    def convert_to_pdf_thread_wkhtml(self, output_path, pdfTitle):
+        """Convert markdown to PDF using wkhtmltopdf."""
+        md_content = self.md_textbox.get("1.0", tk.END).strip()
+        css_content = self.css_textbox.get("1.0", tk.END).strip()
+        
+        self.progress_bar.set(0.3)
+        self.update_status("Preparing conversion with wkhtmltopdf...")
+
+        if not md_content:
+            messagebox.showwarning("Warning", "Please add some markdown content!")
+            return
+        
+        file_path = output_path
         
         if not file_path:
             return
         
         try:
-
-            self.progress_bar.set(0.7)
-            self.update_status("Generating PDF with WeasyPrint...")
-
             # Convert to HTML
-            html_content = self.md_to_html(md_content, css_content)
+            self.progress_bar.set(0.5)
+            self.update_status("[WKHTMLTOPDF] Converting Markdown to HTML...")
+
+            html_content = self.md_to_html(md_content, css_content, pdfTitle)
+
+            self.progress_bar.set(0.8)
+            self.update_status("Generating high-quality PDF with wkhtmltopdf...")
+            # Configure wkhtmltopdf options
+            options = {
+                'page-size': 'A4',
+                # 'margin-top': '20mm',
+                # 'margin-right': '20mm', 
+                # 'margin-bottom': '20mm',
+                # 'margin-left': '20mm',
+                'encoding': "UTF-8",
+                'no-outline': None,
+                'enable-local-file-access': None,
+                'print-media-type': None,
+                'disable-smart-shrinking': None,
+                'dpi': 300,
+                'image-dpi': 300,
+                'image-quality': 100,
+                'lowquality': False,
+                'minimum-font-size': 8,
+                'zoom': 1.0
+            }
+
+            options['enable-javascript'] = None
+            options['javascript-delay'] = 1000 
             
-            # Convert HTML to PDF using WeasyPrint
-            html_doc = HTML(string=html_content)
-            html_doc.write_pdf(file_path)
+             # Set the path to wkhtmltopdf if we found it
+            config = pdfkit.configuration(wkhtmltopdf=self.wkhtmltopdf_path) if self.wkhtmltopdf_path != "wkhtmltopdf" else None
+            
+            # Convert to PDF using pdfkit
+            pdfkit.from_string(html_content, file_path, options=options, configuration=config)
 
             self.progress_bar.set(1.0)
             self.update_status(f"PDF saved successfully: {Path(file_path).name}")
@@ -349,13 +519,115 @@ th {
                 if os.name == 'nt':
                     os.startfile(file_path)
                 elif sys.platform == 'darwin':
+                    subprocess.run(['open', file_path])
+                else:
+                    subprocess.run(['xdg-open', file_path])
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to convert to PDF: {e}")
+
+    def convert_to_pdf_thread_weasyprint(self, output_path, pdfTitle):
+        """Convert markdown to PDF using WeasyPrint."""
+        self.progress_bar.set(0.3)
+        self.update_status("Preparing conversion with weasyprint...")
+    
+        md_content = self.md_textbox.get("1.0", tk.END).strip()
+        css_content = self.css_textbox.get("1.0", tk.END).strip()
+        
+        if not md_content:
+            messagebox.showwarning("Warning", "Please add some markdown content!")
+            return
+        
+        self.progress_bar.set(0.5)
+        self.update_status("[WEASYPRINT] Converting Markdown to HTML...")
+        
+        if not output_path:
+            return
+        
+        try:
+
+            self.progress_bar.set(0.7)
+            self.update_status("Generating PDF with WeasyPrint...")
+
+            # Convert to HTML
+            html_content = self.md_to_html(md_content, css_content, pdfTitle)
+            
+            # Convert HTML to PDF using WeasyPrint
+            html_doc = HTML(string=html_content)
+            html_doc.write_pdf(output_path)
+
+            self.progress_bar.set(1.0)
+            self.update_status(f"PDF saved successfully: {Path(output_path).name}")
+
+            if messagebox.askyesno("Success", f"PDF created successfully!\n\nFile: {Path(output_path).name}\n\nOpen the file now?"):
+                if os.name == 'nt':
+                    os.startfile(output_path)
+                elif sys.platform == 'darwin':
                     subprocess.run(['open', output_path])
                 else:
                     subprocess.run(['xdg-open', output_path])
             
         except Exception as e:
             messagebox.showerror("Error", f"Failed to convert to PDF: {e}")
+
+    async def html_to_pdf_async(self, html_content, output_path):
+        """Convert HTML to PDF using Playwright asynchronously."""
+        async with async_playwright() as p:
+            browser = await p.chromium.launch()
+            page = await browser.new_page()
+            
+            # Set HTML content and wait for network idle
+            await page.set_content(html_content, wait_until="networkidle")
+            
+            # Generate PDF with options
+            await page.pdf(
+                path=output_path,
+                format='A4',
+                print_background=True
+            )
+            
+            await browser.close()
     
+    def convert_to_pdf_thread_playwright(self, output_path, pdfTitle):
+        """Convert markdown to PDF using Playwright."""
+        md_content = self.md_textbox.get("1.0", tk.END).strip()
+        css_content = self.css_textbox.get("1.0", tk.END).strip()
+        
+        self.progress_bar.set(0.3)
+        self.update_status("Preparing conversion with Playwright...")
+
+        if not md_content:
+            messagebox.showwarning("Warning", "Please add some markdown content!")
+            return
+        
+        file_path = output_path
+        
+        if not file_path:
+            return
+        
+        try:
+            self.progress_bar.set(0.5)
+            self.update_status("[PLAYWRIGHT] Converting Markdown to HTML...")
+            # Convert to HTML
+            html_content = self.md_to_html(md_content, css_content, pdfTitle)
+            
+            self.progress_bar.set(0.8)
+            self.update_status("Generating PDF with Playwright...")
+            # Run async conversion
+            asyncio.run(self.html_to_pdf_async(html_content, file_path))
+            
+            self.progress_bar.set(1.0)
+            self.update_status(f"PDF saved successfully: {Path(file_path).name}")
+            if messagebox.askyesno("Success", f"PDF created successfully!\n\nFile: {Path(file_path).name}\n\nOpen the file now?"):
+                if os.name == 'nt':
+                    os.startfile(file_path)
+                elif sys.platform == 'darwin':
+                    subprocess.run(['open', file_path])
+                else:
+                    subprocess.run(['xdg-open', file_path])
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to convert to PDF: {e}")
+
     def run(self):
         self.root.mainloop()
 

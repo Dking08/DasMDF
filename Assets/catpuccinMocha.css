@@ -1,0 +1,170 @@
+@charset "UTF-8";
+
+/* ===== Reset & Base ===== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 11pt;
+    line-height: 1.7;
+    color: #cdd6f4;
+    background-color: #1e1e2e;
+    padding: 24pt;
+}
+
+
+img {
+    display: block;
+    margin: 2em auto;
+    max-width: 90%;
+    height: auto;
+    border-radius: 12px;
+    border: 2px solid #585b70;
+    box-shadow: 0 0 12px #89b4fa33;
+        }
+
+figure {
+    text-align: center;
+    margin: 2em auto;
+    }
+
+figcaption {
+    margin-top: 0.5em;
+    font-size: 0.9em;
+    color: #a6adc8;
+    font-style: italic;
+}
+
+/* ===== Headings ===== */
+h1, h2, h3, h4, h5, h6 {
+    margin: 1.5em 0 0.5em 0;
+    font-weight: 600;
+    color: #89b4fa;
+}
+
+h1 {
+    font-size: 2em;
+    border-bottom: 2px solid #74c7ec;
+    padding-bottom: 0.3em;
+}
+
+h2 {
+    font-size: 1.5em;
+    border-bottom: 1px solid #89dceb;
+    padding-bottom: 0.3em;
+}
+
+h3 {
+    font-size: 1.25em;
+    color: #94e2d5;
+}
+
+/* ===== Paragraphs & Text ===== */
+p {
+    margin: 0.9em 0;
+}
+
+strong {
+    font-weight: 700;
+    color: #fab387;
+}
+
+em {
+    font-style: italic;
+    color: #f5c2e7;
+}
+
+hr {
+    border: none;
+    border-top: 2px solid #45475a;
+    margin: 2em 0;
+}
+
+/* ===== Lists ===== */
+ul, ol {
+    margin: 1em 0;
+    padding-left: 2em;
+}
+
+li {
+    margin: 0.4em 0;
+}
+
+/* ===== Blockquote ===== */
+blockquote {
+    margin: 1.2em 0;
+    padding: 1em 1.5em;
+    border-left: 4px solid #94e2d5;
+    background-color: #313244;
+    font-style: italic;
+    color: #cba6f7;
+}
+
+/* ===== Code & Preformatted ===== */
+code {
+    background-color: #313244;
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 0.95em;
+    color: #f38ba8;
+}
+
+pre {
+    background-color: #181825;
+    border: 1px solid #585b70;
+    border-radius: 6px;
+    padding: 1em;
+    margin: 1.5em 0;
+    overflow-x: auto;
+    color: #cdd6f4;
+}
+
+pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+}
+
+/* ===== Tables ===== */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1.5em 0;
+    background-color: #1e1e2e;
+}
+
+th, td {
+    border: 1px solid #45475a;
+    padding: 0.6em 0.8em;
+    text-align: left;
+    color: #cdd6f4;
+}
+
+th {
+    background-color: #313244;
+    font-weight: bold;
+    color: #89b4fa;
+}
+
+/* ===== Links ===== */
+a {
+    color: #74c7ec;
+    text-decoration: underline dotted;
+}
+
+a:hover {
+    text-decoration: underline solid;
+}
+
+/* ===== PDF Layout ===== */
+@page {
+    size: A4;
+    margin: 2cm;
+    background: #1e1e2e;
+}
+

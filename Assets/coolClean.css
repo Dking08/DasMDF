@@ -1,0 +1,182 @@
+@charset "UTF-8";
+
+/* ===== Reset & Base Layout ===== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', 'Segoe UI', Tahoma, sans-serif;
+    font-size: 11pt;
+    line-height: 1.75;
+    color: #e0e0e0;
+    background-color: #121212;
+    padding: 28pt;
+    max-width: 100%;
+}
+
+
+img {
+	display: block;
+    margin: 2em auto;
+    max-width: 90%;
+    height: auto;
+    border-radius: 12px;
+    border: 2px solid #585b70;
+    box-shadow: 0 0 12px #89b4fa33;
+}
+
+figure {
+    text-align: center;
+    margin: 2em auto;
+}
+
+figcaption {
+    margin-top: 0.5em;
+    font-size: 0.9em;
+    color: #a6adc8;
+    font-style: italic;
+}
+
+/* ===== Headings ===== */
+h1, h2, h3, h4, h5, h6 {
+    color: #ffffff;
+    font-weight: 700;
+    margin-top: 1.8em;
+    margin-bottom: 0.6em;
+    line-height: 1.25;
+}
+
+h1 {
+    font-size: 2.1em;
+    border-bottom: 3px solid #3fa9f5;
+    padding-bottom: 0.3em;
+    color: #3fa9f5;
+}
+
+h2 {
+    font-size: 1.6em;
+    border-bottom: 2px solid #4dd0e1;
+    padding-bottom: 0.2em;
+    color: #4dd0e1;
+}
+
+h3 {
+    font-size: 1.3em;
+    color: #80cbc4;
+}
+
+h4, h5, h6 {
+    font-size: 1.1em;
+    color: #b2dfdb;
+}
+
+/* ===== Paragraphs & Text Elements ===== */
+p {
+    margin: 1em 0;
+    color: #d0d0d0;
+}
+
+strong {
+    color: #ffab91;
+    font-weight: 700;
+}
+
+em {
+    color: #f48fb1;
+    font-style: italic;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid #333;
+    margin: 2em 0;
+}
+
+/* ===== Lists ===== */
+ul, ol {
+    margin: 1.2em 0;
+    padding-left: 2em;
+}
+
+li {
+    margin: 0.5em 0;
+}
+
+/* ===== Blockquote ===== */
+blockquote {
+    margin: 1.5em 0;
+    padding: 1em 1.5em;
+    background: #1f1f1f;
+    border-left: 4px solid #4dd0e1;
+    font-style: italic;
+    color: #eeeeee;
+}
+
+/* ===== Code & Pre ===== */
+code {
+    background-color: #1e1e1e;
+    color: #ffcc80;
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 0.95em;
+}
+
+pre {
+    background-color: #232323;
+    border-left: 4px solid #80cbc4;
+    padding: 1em;
+    margin: 1.5em 0;
+    overflow-x: auto;
+    border-radius: 6px;
+    color: #ffffff;
+}
+
+pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+}
+
+/* ===== Tables ===== */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 2em 0;
+    background-color: #1c1c1c;
+}
+
+th, td {
+    border: 1px solid #333;
+    padding: 0.75em;
+    color: #e0e0e0;
+    text-align: left;
+}
+
+th {
+    background-color: #2a2a2a;
+    font-weight: bold;
+    color: #4dd0e1;
+}
+
+/* ===== Links ===== */
+a {
+    color: #64b5f6;
+    text-decoration: underline;
+}
+
+a:hover {
+    color: #90caf9;
+    text-decoration: none;
+}
+
+/* ===== PDF Layout ===== */
+@page {
+    size: A4;
+    margin: 2.5cm;
+    background: #121212;
+}
+
