@@ -1,9 +1,8 @@
 """
 DasMDF - Markdown to PDF Converter
-CustomTkinter Version - WeasyPrint Engine Integration
+CustomTkinter Version - Multi Engine Integration
 
 A simple GUI application for converting Markdown files to PDF format.
-Now includes WeasyPrint engine and HTML preview functionality.
 """
 
 import asyncio
@@ -207,68 +206,97 @@ def hello_world():
         self.md_textbox.insert("1.0", default_md)
 
         # Default CSS
-        default_css = """body {
-    font-family: Arial, sans-serif;
-    line-height: 1.6;
-    margin: 40px;
-    color: #333;
-}
+        css_content = self.fetch_default_css()
+        if css_content:
+            self.css_textbox.delete("0.0", "end")
+            self.css_textbox.insert("0.0", css_content)
+        else:
+            default_css = """body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        margin: 40px;
+        color: #333;
+        }
 
-h1, h2, h3 {
-    color: #2c3e50;
-}
+        h1, h2, h3 {
+        color: #2c3e50;
+        }
 
-h1 {
-    border-bottom: 3px solid #3498db;
-    padding-bottom: 10px;
-}
+        h1 {
+        border-bottom: 3px solid #3498db;
+        padding-bottom: 10px;
+        }
 
-h2 {
-    border-bottom: 1px solid #bdc3c7;
-    padding-bottom: 5px;
-}
+        h2 {
+        border-bottom: 1px solid #bdc3c7;
+        padding-bottom: 5px;
+        }
 
-blockquote {
-    border-left: 4px solid #3498db;
-    margin: 0;
-    padding-left: 20px;
-    font-style: italic;
-    background-color: #f8f9fa;
-    padding: 10px 20px;
-}
+        blockquote {
+        border-left: 4px solid #3498db;
+        margin: 0;
+        padding-left: 20px;
+        font-style: italic;
+        background-color: #f8f9fa;
+        padding: 10px 20px;
+        }
 
-code {
-    background-color: #f8f8f8;
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-family: 'Courier New', monospace;
-}
+        code {
+        background-color: #f8f8f8;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-family: 'Courier New', monospace;
+        }
 
-pre {
-    background-color: #f8f8f8;
-    padding: 15px;
-    border-radius: 5px;
-    overflow-x: auto;
-}
+        pre {
+        background-color: #f8f8f8;
+        padding: 15px;
+        border-radius: 5px;
+        overflow-x: auto;
+        }
 
-table {
-    border-collapse: collapse;
-    width: 100%;
-    margin: 20px 0;
-}
+        table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 20px 0;
+        }
 
-th, td {
-    border: 1px solid #ddd;
-    padding: 12px;
-    text-align: left;
-}
+        th, td {
+        border: 1px solid #ddd;
+        padding: 12px;
+        text-align: left;
+        }
 
-th {
-    background-color: #f2f2f2;
-    font-weight: bold;
-}"""
-        self.css_textbox.insert("1.0", default_css)
+        th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+        }"""
+            self.css_textbox.insert("1.0", default_css)
 
+    def save_default_css(self):
+        css_content = self.css_textbox.get("0.0", "end-1c")
+        try:
+            css_dir = os.path.expanduser("~/.dasmdf")
+            os.makedirs(css_dir, exist_ok=True)
+            css_path = os.path.join(css_dir, "dcss.css")
+            with open(css_path, "w", encoding="utf-8") as f:
+                f.write(css_content)
+                self.update_status(f"Default CSS saved to {css_path}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save CSS: {str(e)}")
+    
+    def fetch_default_css(self):
+        css_dir = os.path.expanduser("~/.dasmdf")
+        css_path = os.path.join(css_dir, "dcss.css")
+        if os.path.exists(css_path):
+            try:
+                with open(css_path, "r", encoding="utf-8") as f:
+                    css_content = f.read()
+                    self.update_status(f"Default CSS loaded from {css_path}")
+                    return css_content
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to load CSS: {str(e)}")
+    
     def update_status(self, message):
         self.status_label.configure(text=message)
         self.root.update_idletasks()
@@ -535,6 +563,10 @@ th {
                 f"PDF saved successfully: {Path(file_path).name}"
             )
 
+            save_default_css = self.css_textbox.get("0.0", "end-1c")
+            if save_default_css.strip():    
+                self.save_default_css()
+
             if messagebox.askyesno(
                 "Success",
                 f"PDF created successfully!\n\nFile: {Path(file_path).name}\n\nOpen the file now?"
@@ -583,6 +615,10 @@ th {
             self.update_status(
                 f"PDF saved successfully: {Path(output_path).name}"
             )
+
+            save_default_css = self.css_textbox.get("0.0", "end-1c")
+            if save_default_css.strip():    
+                self.save_default_css()
 
             if messagebox.askyesno(
                 "Success",
@@ -652,6 +688,11 @@ th {
             self.update_status(
                 f"PDF saved successfully: {Path(file_path).name}"
             )
+
+            save_default_css = self.css_textbox.get("0.0", "end-1c")
+            if save_default_css.strip():    
+                self.save_default_css()
+
             if messagebox.askyesno(
                 "Success",
                 f"PDF created successfully!\n\nFile: {Path(file_path).name}\n\nOpen the file now?"
