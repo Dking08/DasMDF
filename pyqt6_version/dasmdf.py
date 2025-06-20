@@ -9,9 +9,11 @@ This is the main PyQt6 implementation with enhanced features and capabilities.
 
 import sys
 import os
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
-                            QHBoxLayout, QGridLayout, QLabel, QTextEdit, 
-                            QPushButton, QFileDialog, QMessageBox, QFrame)
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
+    QGridLayout, QLabel, QTextEdit, QPushButton, QProgressBar, 
+    QFileDialog, QMessageBox, QComboBox, QFrame
+)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
@@ -29,43 +31,34 @@ class MarkdownToPDFConverter(QMainWindow):
     
     def create_widgets(self):
         """Create and arrange the GUI widgets."""
-        # Central widget
+
+        # Create central widget
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
         # Main layout
-        main_layout = QVBoxLayout(central_widget)
+        main_layout = QVBoxLayout()
+        central_widget.setLayout(main_layout)
         
-        # Title section
-        self.create_title_section(main_layout)
-        
-        # Content area
-        self.create_content_area(main_layout)
-        
-        # Button section
-        self.create_button_section(main_layout)
-    
-    def create_title_section(self, parent_layout):
-        """Create the title section."""
-        title_label = QLabel("DasMDF Converter")
+        # Title
+        title_label = QLabel("Markdown to DasMDF")
         title_font = QFont()
-        title_font.setPointSize(24)
+        title_font.setPointSize(18)
         title_font.setBold(True)
         title_label.setFont(title_font)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        parent_layout.addWidget(title_label)
-    
-    def create_content_area(self, parent_layout):
-        """Create the main content area with text editors."""
+        main_layout.addWidget(title_label)
+
         # Content frame
         content_frame = QFrame()
-        content_layout = QGridLayout(content_frame)
-        parent_layout.addWidget(content_frame)
+        content_layout = QGridLayout()
+        content_frame.setLayout(content_layout)
+        main_layout.addWidget(content_frame)
         
         # Markdown section
         md_label = QLabel("Markdown Content")
         md_font = QFont()
-        md_font.setPointSize(16)
+        md_font.setPointSize(12)
         md_font.setBold(True)
         md_label.setFont(md_font)
         content_layout.addWidget(md_label, 0, 0)
@@ -88,33 +81,47 @@ class MarkdownToPDFConverter(QMainWindow):
         content_layout.setColumnStretch(0, 1)
         content_layout.setColumnStretch(1, 1)
         
+        # Button layout
+        button_layout = QHBoxLayout()
+        content_layout.addLayout(button_layout, 2, 0, 1, 2)
+        
+        # Buttons
+        load_md_btn = QPushButton("Load Markdown")
+        load_md_btn.clicked.connect(self.load_markdown_file)
+        button_layout.addWidget(load_md_btn)
+        
+        load_css_btn = QPushButton("Load CSS")
+        load_css_btn.clicked.connect(self.load_css_file)
+        button_layout.addWidget(load_css_btn)
+        
+        preview_btn = QPushButton("Preview HTML")
+        preview_btn.clicked.connect(self.preview_document)
+        button_layout.addWidget(preview_btn)
+        
+        # Engine selection
+        engine_label = QLabel("Engine:")
+        button_layout.addWidget(engine_label)
+        
+        self.engine_combo = QComboBox()
+        self.engine_combo.addItems(["playwright", "weasyprint", "wkhtml", "md2pdf"])
+        button_layout.addWidget(self.engine_combo)
+        
+        convert_btn = QPushButton("Convert to PDF")
+        convert_btn.clicked.connect(self.convert_to_pdf)
+        convert_btn.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; font-weight: bold; }")
+        button_layout.addWidget(convert_btn)
+        
+        # Progress bar
+        self.progress_bar = QProgressBar()
+        content_layout.addWidget(self.progress_bar, 3, 0, 1, 2)
+        
+        # Status label
+        self.status_label = QLabel("Ready to convert")
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        content_layout.addWidget(self.status_label, 4, 0, 1, 2)
+        
         # Add default content
         self.add_default_content()
-    
-    def create_button_section(self, parent_layout):
-        """Create the button section."""
-        button_layout = QHBoxLayout()
-        parent_layout.addLayout(button_layout)
-        
-        # Load MD button
-        self.load_md_btn = QPushButton("Load MD")
-        self.load_md_btn.clicked.connect(self.load_markdown_file)
-        button_layout.addWidget(self.load_md_btn)
-        
-        # Load CSS button
-        self.load_css_btn = QPushButton("Load CSS")
-        self.load_css_btn.clicked.connect(self.load_css_file)
-        button_layout.addWidget(self.load_css_btn)
-        
-        # Preview button
-        self.preview_btn = QPushButton("Preview")
-        self.preview_btn.clicked.connect(self.preview_document)
-        button_layout.addWidget(self.preview_btn)
-        
-        # Convert button
-        self.convert_btn = QPushButton("Convert")
-        self.convert_btn.clicked.connect(self.convert_to_pdf)
-        button_layout.addWidget(self.convert_btn)
     
     def add_default_content(self):
         """Add default sample content."""
@@ -278,6 +285,58 @@ def main():
     """Main entry point."""
     app = QApplication(sys.argv)
     app.setStyle('Fusion')  # Modern look
+    
+    # Set dark theme
+    app.setStyleSheet("""
+        QMainWindow {
+            background-color: #2b2b2b;
+            color: #ffffff;
+        }
+        QWidget {
+            background-color: #2b2b2b;
+            color: #ffffff;
+        }
+        QTextEdit {
+            background-color: #3c3c3c;
+            border: 1px solid #555555;
+            color: #ffffff;
+        }
+        QPushButton {
+            background-color: #404040;
+            border: 1px solid #555555;
+            padding: 8px;
+            color: #ffffff;
+        }
+        QPushButton:hover {
+            background-color: #505050;
+        }
+        QPushButton:pressed {
+            background-color: #606060;
+        }
+        QComboBox {
+            background-color: #404040;
+            border: 1px solid #555555;
+            padding: 5px;
+            color: #ffffff;
+        }
+        QComboBox::drop-down {
+            border: none;
+        }
+        QComboBox::down-arrow {
+            border: none;
+        }
+        QProgressBar {
+            border: 1px solid #555555;
+            text-align: center;
+            background-color: #3c3c3c;
+        }
+        QProgressBar::chunk {
+            background-color: #4CAF50;
+        }
+        QLabel {
+            color: #ffffff;
+        }
+    """)
     
     # Print startup info
     print("DasMDF - Markdown to PDF Converter (PyQt6)")
