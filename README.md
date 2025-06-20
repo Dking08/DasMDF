@@ -2,6 +2,9 @@
 
 **DasMDF** is a Python-based desktop application with a modern **CustomTkinter** GUI that converts Markdown (`.md`) files into beautiful PDF documents using multiple rendering engines. Designed to be simple, fast, and flexible, it's perfect for developers, students, researchers, and writers.
 
+- 🔷 **PyQt6 Version (Active/Main)** – Full-featured modern GUI
+- 🟦 **CustomTkinter Version (Legacy)** – Lightweight prototype version
+
 ## 🌟 Highlights
 
 - Sleek and responsive **CustomTkinter** GUI
