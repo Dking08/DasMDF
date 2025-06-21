@@ -299,13 +299,25 @@ class MarkdownToPDFConverter(QMainWindow):
         central_widget.setLayout(main_layout)
 
         # Title
-        title_label = QLabel("Markdown to DasMDF")
+        title_label = QLabel("DasMDF - Markdown to PDF Converter")
         title_font = QFont()
         title_font.setPointSize(18)
         title_font.setBold(True)
         title_label.setFont(title_font)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(title_label)
+
+        # Title and Help button in a horizontal layout
+        title_help_layout = QHBoxLayout()
+        title_help_layout.addWidget(title_label)
+        help_btn = QPushButton("?")
+        help_btn.setFixedSize(32, 32)
+        help_btn.setToolTip("Show help/about")
+        help_btn.clicked.connect(self.show_help_popup)
+        title_help_layout.addWidget(help_btn, alignment=Qt.AlignmentFlag.AlignRight)
+        title_help_layout.setStretch(0, 1)
+        title_help_layout.setStretch(1, 0)
+        main_layout.addLayout(title_help_layout)
 
         # Content frame
         content_frame = QFrame()
@@ -385,6 +397,62 @@ class MarkdownToPDFConverter(QMainWindow):
 
         # Add default content
         self.add_default_content()
+
+    def show_help_popup(self):
+        help_text = (
+            "<h2><b>Markdown to DasMDF</b></h2><br>"
+            "Convert your Markdown files to high-quality PDFs using multiple rendering engines, each with unique strengths.<br><br>"
+
+            "<b>✨ Features:</b>"
+            "<ul>"
+            "<li>Support for multiple conversion engines: <b>Playwright</b>, <b>WeasyPrint</b>, and <b>wkhtmltopdf</b></li>"
+            "<li>Live HTML preview in your default browser (independent of selected engine)</li>"
+            "<li>Option to apply custom CSS for better styling</li>"
+            "</ul><br>"
+
+            "<b>🛠️ Conversion Engines:</b><br>"
+            "<table border='1' cellspacing='0' cellpadding='6' style='border-collapse: collapse;'>"
+            "<tr><th>Engine</th><th>Strengths</th><th>Limitations</th></tr>"
+
+            "<tr><td><b>Playwright</b></td>"
+            "<td>Best-in-class rendering with a headless Chromium browser.<br>"
+            "Excellent CSS support.<br>Supports LaTeX via MathJax.</td>"
+            "<td>Requires larger runtime (bundles browser).</td></tr>"
+
+            "<tr><td><b>WeasyPrint</b></td>"
+            "<td>Advanced CSS layout and styling support.<br>"
+            "Clean and modern output.</td>"
+            "<td>Limited or no support for LaTeX math expressions.</td></tr>"
+
+            "<tr><td><b>wkhtmltopdf</b></td>"
+            "<td>Stable and mature.<br>Fast rendering.</td>"
+            "<td>Outdated rendering engine.<br>Poor emoji and modern CSS support.</td></tr>"
+            "</table><br>"
+
+            "<b>📘 How to Use:</b>"
+            "<ol>"
+            "<li><b>Write</b> or <b>load</b> your Markdown content in the editor section.</li>"
+            "<li>Optional: <b>Write</b> or <b>load</b> a custom CSS file for personalized styling.</li>"
+            "<li><b>Select</b> a rendering engine: <b>Playwright</b>, <b>WeasyPrint</b>, or <b>wkhtmltopdf</b>.</li>"
+            "<li><b>Preview</b> the rendered HTML anytime using the <b>Preview HTML</b> button (engine-independent).</li>"
+            "<li>Click <b>Convert to PDF</b>, enter a title and choose file location — and you’re done!</li>"
+            "</ol><br>"
+
+            "<b>🔗 For more information, visit the GitHub repository.</b><br><br>"
+            "Made with ❤️ by Dastageer"
+        )
+
+        # Show help/about in a scrollable message box
+        scroll = QTextEdit()
+        scroll.setReadOnly(True)
+        scroll.setHtml(help_text)
+        scroll.setMinimumSize(600, 400)
+        scroll.setStyleSheet("background-color: #232323; color: #fff;")
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Help/About")
+        msg_box.layout().addWidget(scroll, 0, 1, 1, msg_box.layout().columnCount(), alignment=Qt.AlignmentFlag.AlignCenter)
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg_box.exec()
 
     def save_default_css(self):
         """Save the current CSS content as default."""
