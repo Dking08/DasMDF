@@ -375,7 +375,7 @@ class MarkdownToPDFConverter(QMainWindow):
 
         self.engine_combo = QComboBox()
         self.engine_combo.addItems(
-            ["playwright", "weasyprint", "wkhtml", "md2pdf"]
+            ["playwright", "weasyprint", "wkhtml"]
         )
         button_layout.addWidget(self.engine_combo)
 
@@ -459,7 +459,7 @@ class MarkdownToPDFConverter(QMainWindow):
         """Save the current CSS content as default."""
         css_content = self.css_textbox.toPlainText()
         try:
-            css_dir = os.path.expanduser("~/.md2pdfgui")
+            css_dir = os.path.expanduser("~/.dasmdf")
             os.makedirs(css_dir, exist_ok=True)
             css_path = os.path.join(css_dir, "dcss.css")
             with open(css_path, "w", encoding="utf-8") as f:
@@ -472,7 +472,7 @@ class MarkdownToPDFConverter(QMainWindow):
 
     def fetch_default_css(self):
         """Fetch the default CSS content if it exists."""
-        css_dir = os.path.expanduser("~/.md2pdfgui")
+        css_dir = os.path.expanduser("~/.dasmdf")
         css_path = os.path.join(css_dir, "dcss.css")
         if os.path.exists(css_path):
             try:

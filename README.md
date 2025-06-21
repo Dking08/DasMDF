@@ -4,6 +4,17 @@
 
 ---
 
+## ⬇️ Download
+
+A ready-to-use **Windows executable** for the PyQt6 version is available—no setup required!  
+The `.exe` includes all dependencies, including **wkhtmltopdf** and **Playwright** (note: this increases the file size).
+
+- [Download the latest release from GitHub](https://github.com/Dking08/DasMDF/releases)
+
+Just download, extract, and run the executable.
+
+---
+
 ## 🧠 Why DasMDF?
 
 - Convert Markdown to PDF in a click
@@ -112,7 +123,7 @@ playwright install
 
 - ✅ **Switch to PyQt6**
 - ✅ Version-specific `requirements.txt`
-- 🔜 **Executable build for PyQt6 (e.g., via PyInstaller)**
+- ✅ **Executable build for PyQt6 (with all dependencies)**
 - 🔜 Markdown live preview
 - 🔜 Settings and export options
 - 🔜 CLI support (optional)

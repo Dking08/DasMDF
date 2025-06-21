@@ -1,4 +1,5 @@
 __pycache__/
 DasMDF_ven/
 DasMDF_qt6ven/
+pyqt6_version/output/
 *.pdf
