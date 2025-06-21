@@ -670,7 +670,8 @@ th {
         common_paths = [
             r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe",
             r"C:\Program Files (x86)\wkhtmltopdf\bin\wkhtmltopdf.exe",
-            "wkhtmltopdf"  # If in PATH as a command
+            r"wkhtmltopdf\bin\wkhtmltopdf.exe",  # Relative path
+            # If in PATH as a command
         ]
         for path in common_paths:
             try:

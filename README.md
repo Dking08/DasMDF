@@ -124,8 +124,6 @@ playwright install
 We welcome pull requests and issue reports!
 Please follow [PEP8](https://peps.python.org/pep-0008/) guidelines and keep your commits clean and descriptive.
 
-If you're contributing to GUI/UX, work on the `pyqt6_version/` folder only.
-
 ---
 
 ## 📜 License
