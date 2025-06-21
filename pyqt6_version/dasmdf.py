@@ -7,6 +7,7 @@ A professional GUI application for converting Markdown files to PDF format.
 This is the main PyQt6 implementation with enhanced features and capabilities.
 """
 
+import subprocess
 import sys
 import os
 from pathlib import Path
@@ -15,6 +16,7 @@ import webbrowser
 import markdown2
 from pygments.formatters import HtmlFormatter
 from weasyprint import HTML
+import pdfkit
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QGridLayout, QLabel, QTextEdit, QPushButton, QProgressBar, 
@@ -29,7 +31,7 @@ class ConversionThread(QThread):
     status_updated = pyqtSignal(str)
     conversion_finished = pyqtSignal(bool, str)
 
-    def __init__(self, engine, md_content, css_content, output_path, pdf_title):
+    def __init__(self, engine, md_content, css_content, output_path, pdf_title, wkhtmltopdf_path=None):
         """Initialize the conversion thread with necessary parameters."""
         super().__init__()
         self.engine = engine
@@ -37,11 +39,14 @@ class ConversionThread(QThread):
         self.css_content = css_content
         self.output_path = output_path
         self.pdf_title = pdf_title
+        self.wkhtmltopdf_path = wkhtmltopdf_path
 
     def run(self):
         try:
             if self.engine == "weasyprint":
                 self.convert_with_weasyprint()
+            elif self.engine == "wkhtml":
+                self.conert_with_wkhtml()
             else:
                 self.conversion_finished.emit(False, f"Engine will be implemented in the next version: {self.engine}")
             
@@ -111,12 +116,71 @@ class ConversionThread(QThread):
             self.progress_updated.emit(0.0)
             self.status_updated.emit(f"[WEASYPRINT] Conversion failed: {str(e)}")
             self.conversion_finished.emit(False, f"Conversion failed: {str(e)}")
+    
+    def conert_with_wkhtml(self):
+        """Convert markdown to PDF using wkhtmltopdf."""
+        self.progress_updated.emit(0.3)
+        self.status_updated.emit("Preparing conversion with wkhtmltopdf...")
+        if not self.wkhtmltopdf_path:
+            self.conversion_finished.emit(False, "wkhtmltopdf executable not found.")
+            return
+
+        self.progress_updated.emit(0.5)
+        self.status_updated.emit("[WKHTMLTOPDF] Converting Markdown to HTML...")
+
+        try:
+            html_content = self.md_to_html(self.md_content, self.css_content, self.pdf_title)
+            self.progress_updated.emit(0.7)
+            self.status_updated.emit("Generating PDF with wkhtmltopdf...")
+
+            options = {
+                'page-size': 'A4',
+                # 'margin-top': '20mm',
+                # 'margin-right': '20mm',
+                # 'margin-bottom': '20mm',
+                # 'margin-left': '20mm',
+                'encoding': "UTF-8",
+                'no-outline': None,
+                'enable-local-file-access': None,
+                'print-media-type': None,
+                'disable-smart-shrinking': None,
+                'dpi': 300,
+                'image-dpi': 300,
+                'image-quality': 100,
+                'lowquality': False,
+                'minimum-font-size': 8,
+                'zoom': 1.0
+            }
+
+            options['enable-javascript'] = None
+            options['javascript-delay'] = 1000
+
+            # Set the path to wkhtmltopdf if we found it
+            config = (
+                pdfkit.configuration(wkhtmltopdf=self.wkhtmltopdf_path)
+                if self.wkhtmltopdf_path != "wkhtmltopdf"
+                else None
+            )
+
+            # Convert to PDF using pdfkit
+            pdfkit.from_string(
+                html_content, self.output_path, options=options, configuration=config
+            )
+            self.progress_updated.emit(1.0)
+            self.status_updated.emit("[WKHTMLTOPDF] Conversion completed successfully!")
+
+            self.conversion_finished.emit(True, f"PDF saved to: {self.output_path}")
+        except Exception as e:
+            self.progress_updated.emit(0.0)
+            self.status_updated.emit(f"[WKHTMLTOPDF] Conversion failed: {str(e)}")
+            self.conversion_finished.emit(False, f"Conversion failed: {str(e)}")
 
 class MarkdownToPDFConverter(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setup_window()
         self.create_widgets()
+        self.wkhtmltopdf_path = self.find_wkhtmltopdf()
     
     def setup_window(self):
         """Configure the main application window."""
@@ -376,6 +440,33 @@ th {
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to preview HTML: {str(e)}")
+
+    def find_wkhtmltopdf(self):
+        """Find the wkhtmltopdf executable in the system PATH."""
+        # First, try searching in PATH
+        for path in os.environ["PATH"].split(os.pathsep):
+            exe_path = Path(path) / "wkhtmltopdf"
+            if exe_path.exists() and exe_path.is_file():
+                return str(exe_path)
+
+        # Then, try common installation paths (Windows)
+        common_paths = [
+            r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe",
+            r"C:\Program Files (x86)\wkhtmltopdf\bin\wkhtmltopdf.exe",
+            "wkhtmltopdf"  # If in PATH as a command
+        ]
+        for path in common_paths:
+            try:
+                if os.path.exists(path):
+                    return path
+                elif path == "wkhtmltopdf":
+                    subprocess.run(
+                        [path, "--version"], capture_output=True, check=True
+                    )
+                    return path
+            except Exception:
+                continue
+        return None
     
     def convert_to_pdf(self):
         engine = self.engine_combo.currentText()
@@ -409,7 +500,7 @@ th {
         
         # Create and start conversion thread
         self.conversion_thread = ConversionThread(
-            engine, md_content, css_content, output_path, pdf_title
+            engine, md_content, css_content, output_path, pdf_title, self.wkhtmltopdf_path
         )
         # Connect signals
         self.conversion_thread.progress_updated.connect(self.update_progress)

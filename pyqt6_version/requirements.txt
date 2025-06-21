@@ -4,6 +4,7 @@ cssselect2==0.8.0
 fonttools==4.58.4
 latex2mathml==3.78.0
 markdown2==2.5.3
+pdfkit==1.0.0
 pillow==11.2.1
 pycparser==2.22
 pydyf==0.11.0
