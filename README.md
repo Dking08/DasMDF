@@ -1,122 +1,141 @@
 # DasMDF - Markdown to PDF Converter
 
-**DasMDF** is a Python-based desktop application with a modern **CustomTkinter** GUI that converts Markdown (`.md`) files into beautiful PDF documents using multiple rendering engines. Designed to be simple, fast, and flexible, it's perfect for developers, students, researchers, and writers.
+**DasMDF** is a modern desktop GUI tool that converts Markdown (`.md`) files into beautifully formatted PDF documents using multiple rendering engines. Built using **PyQt6** (with a legacy version in CustomTkinter), DasMDF is fast, flexible, and ready for open-source contribution.
 
-## 🌟 Highlights
+---
 
-- Sleek and responsive **CustomTkinter** GUI
-- Single-file architecture (`dasmdf.py`)
-- Supports **three powerful rendering engines**
-- Converts Markdown to PDF in one click
-- Preview-friendly engine features (like LaTeX, code, emojis)
+## 🧠 Why DasMDF?
 
-## 🧠 Rendering Engines Overview
+- Convert Markdown to PDF in a click
+- Supports **multiple rendering engines**
+- **PyQt6 UI** for rich, responsive user experience
+- Code highlighting, LaTeX, emoji & image rendering support (engine-dependent)
+- Simple, elegant design for daily use
 
-### 🔹 1. **Playwright**
+---
 
-- **Type**: Chromium browser (headless)
-- **Quality**: ⭐ Best
-- **Speed**: ⚡ Fastest
-- **Supports**:
-  - Full CSS
-  - LaTeX (MathJax)
-  - Code highlighting
-  - Emojis, images
+## 📁 Project Structure
 
-### 🔹 2. **WeasyPrint**
+```plaintext
+DasMDF/
+├── pyqt6\_version/
+│   ├── dasmdf.py
+│   └── requirements.txt
+├── ctk\_version/   ← Legacy version (CustomTkinter)
+│   ├── dasmdf.py
+│   └── requirements.txt
+├── assets/
+│   └── \*.css
+├── LICENSE
+└── README.md
 
-- **Type**: Pure Python
-- **Quality**: ⭐ Medium
-- **Speed**: 🐢 Slowest
-- **Supports**:
-  - CSS, code highlighting
-  - Emojis and LaTeX (poor rendering)
-  - Basic image support
+````
 
-### 🔹 3. **wkhtmltopdf**
+---
 
-- **Type**: Native executable
-- **Quality**: ⭐ Lowest
-- **Speed**: 🚀 Faster than WeasyPrint
-- **Supports**:
-  - Basic CSS, image support
-  - Poor LaTeX
-  - No emoji support
+## 🖥️ Current Version: PyQt6
+
+The **PyQt6 version** is the primary and actively developed version of DasMDF.  
+We transitioned from CustomTkinter because:
+
+- CTk lacks proper emoji rendering in text boxes
+- PyQt6 provides more flexibility, better widget control, and cross-platform rendering consistency
+
+To run:
+
+```bash
+cd pyqt6_version
+pip install -r requirements.txt
+python dasmdf.py
+````
+
+---
+
+## 🧪 Legacy Version: CustomTkinter
+
+You can still use the legacy CTk GUI version (not actively maintained):
+
+```bash
+cd ctk_version
+pip install -r requirements.txt
+python dasmdf.py
+```
+
+---
+
+## 🧠 Rendering Engines
+
+| Engine          | Type              | Quality  | Speed      | Supports                                               |
+| --------------- | ----------------- | -------- | ---------- | ------------------------------------------------------ |
+| **Playwright**  | Headless browser  | ⭐ Best   | ⚡ Fastest  | Full CSS, LaTeX (MathJax), code, images, emojis        |
+| **WeasyPrint**  | Pure Python       | ⭐ Medium | 🐢 Slowest | CSS, code highlighting, limited image/emoji/LaTeX      |
+| **wkhtmltopdf** | Native executable | ⭐ Low    | 🚀 Faster  | Basic CSS, poor LaTeX, partial image, no emoji support |
+
+---
 
 ## 📦 Installation
 
 ### 1. Install `wkhtmltopdf`
 
-- **Windows**: [Download here](https://wkhtmltopdf.org/downloads.html)  
+- **Windows**: [Download](https://wkhtmltopdf.org/downloads.html) and add to PATH
 - **Linux**:
 
   ```bash
   sudo apt install wkhtmltopdf
-
-    ```
+  ```
 
 ### 2. Install Python dependencies
 
+Use the relevant version's requirements file:
+
 ```bash
+# For PyQt6 version
+cd pyqt6_version
+pip install -r requirements.txt
+
+# For CTk version (legacy)
+cd ctk_version
 pip install -r requirements.txt
 ```
 
-### 3. Install Playwright Browsers
+### 3. Install Playwright Browsers (shared)
 
 ```bash
 playwright install
 ```
 
-## 🖥️ Usage
+---
 
-Run the GUI app:
+## 📌 Roadmap
 
-```bash
-python dasmdf.py
-```
+- ✅ **Switch to PyQt6**
+- ✅ Version-specific `requirements.txt`
+- 🔜 **Executable build for PyQt6 (e.g., via PyInstaller)**
+- 🔜 Markdown live preview
+- 🔜 Settings and export options
+- 🔜 CLI support (optional)
 
-Use the interface to:
-
-- Write or load a Markdown file
-- Write or load a CSS file (optional)
-- Choose an engine
-- Export to PDF with a single click
-
-## 🗃️ Branches
-
-- `main` – stable release
-- `dev` – experimental features, testing
-
-## 🧩 Project Structure
-
-```plaintext
-DasMDF/
-├── dasmdf.py
-├── requirements.txt
-└── README.md
-```
+---
 
 ## 🤝 Contributing
 
-We’d love your help!
-Fork the repo, raise issues, or submit PRs. All contributions are welcome—UI, logic, performance, or docs.
+We welcome pull requests and issue reports!
+Please follow [PEP8](https://peps.python.org/pep-0008/) guidelines and keep your commits clean and descriptive.
 
-Please follow [PEP8](https://peps.python.org/pep-0008/) and use meaningful commit messages.
+If you're contributing to GUI/UX, work on the `pyqt6_version/` folder only.
+
+---
 
 ## 📜 License
 
-MIT License – see [LICENSE](LICENSE) for details.
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+
+---
 
 ## 🙏 Acknowledgements
 
-- [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter)
+- [PyQt6](https://riverbankcomputing.com/software/pyqt/)
 - [Playwright](https://playwright.dev/)
 - [WeasyPrint](https://weasyprint.org/)
 - [wkhtmltopdf](https://wkhtmltopdf.org/)
 - [Python-Markdown](https://python-markdown.github.io/)
-
----
-
-> ⚠️ Note: This app is GUI-only and doesn’t support CLI usage currently.
-
----
