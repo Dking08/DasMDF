@@ -17,6 +17,8 @@ import markdown2
 from pygments.formatters import HtmlFormatter
 from weasyprint import HTML
 import pdfkit
+import asyncio
+from playwright.async_api import async_playwright
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QGridLayout, QLabel, QTextEdit, QPushButton, QProgressBar, 
@@ -47,8 +49,12 @@ class ConversionThread(QThread):
                 self.convert_with_weasyprint()
             elif self.engine == "wkhtml":
                 self.conert_with_wkhtml()
+            elif self.engine == "playwright":
+                self.convert_with_playwright()
             else:
-                self.conversion_finished.emit(False, f"Engine will be implemented in the next version: {self.engine}")
+                self.conversion_finished.emit(
+                    False, "Unsupported conversion engine selected."
+                )
             
         except Exception as e:
             self.conversion_finished.emit(False, f"Failed to convert to PDF:\n\n{str(e)}")
@@ -110,7 +116,7 @@ class ConversionThread(QThread):
             self.progress_updated.emit(1.0)
             self.status_updated.emit("[WEASYPRINT] Conversion completed successfully!")
 
-            self.conversion_finished.emit(True, f"PDF saved to: {self.output_path}")
+            self.conversion_finished.emit(True, f"PDF saved to: {self.output_path}", "weasyprint")
 
         except Exception as e:
             self.progress_updated.emit(0.0)
@@ -169,10 +175,55 @@ class ConversionThread(QThread):
             self.progress_updated.emit(1.0)
             self.status_updated.emit("[WKHTMLTOPDF] Conversion completed successfully!")
 
-            self.conversion_finished.emit(True, f"PDF saved to: {self.output_path}")
+            self.conversion_finished.emit(True, f"PDF saved to: {self.output_path}", "wkhtmltopdf")
         except Exception as e:
             self.progress_updated.emit(0.0)
             self.status_updated.emit(f"[WKHTMLTOPDF] Conversion failed: {str(e)}")
+            self.conversion_finished.emit(False, f"Conversion failed: {str(e)}")
+    
+    async def html_to_pdf_async(self, html_content, output_path):
+        """Convert HTML to PDF using Playwright asynchronously."""
+        async with async_playwright() as p:
+            browser = await p.chromium.launch()
+            page = await browser.new_page()
+
+            # Set HTML content and wait for network idle
+            await page.set_content(html_content, wait_until="networkidle")
+
+            # Generate PDF with options
+            await page.pdf(
+                path=output_path,
+                format='A4',
+                print_background=True
+            )
+
+            await browser.close()
+    
+    def convert_with_playwright(self):
+        """Convert markdown to PDF using Playwright."""
+        self.progress_updated.emit(0.3)
+        self.status_updated.emit("Preparing conversion with Playwright...")
+
+        try:
+
+            self.progress_updated.emit(0.5)
+            self.status_updated.emit("[PLAYWRIGHT] Converting Markdown to HTML...")
+
+            html_content = self.md_to_html(self.md_content, self.css_content, self.pdf_title)
+
+            self.progress_updated.emit(0.7)
+            self.status_updated.emit("Generating PDF with Playwright...")
+
+            asyncio.run(self.html_to_pdf_async(html_content, self.output_path))
+
+            self.progress_updated.emit(1.0)
+            self.status_updated.emit("[PLAYWRIGHT] Conversion completed successfully!")
+
+            self.conversion_finished.emit(True, f"PDF saved to: {self.output_path}", "playwright")
+
+        except Exception as e:
+            self.progress_updated.emit(0.0)
+            self.status_updated.emit(f"[PLAYWRIGHT] Conversion failed: {str(e)}")
             self.conversion_finished.emit(False, f"Conversion failed: {str(e)}")
 
 class MarkdownToPDFConverter(QMainWindow):
@@ -516,11 +567,14 @@ th {
     def update_progress(self, value):
         self.progress_bar.setValue(int(value * 100))
     
-    def on_conversion_finished(self, success, message):
+    def on_conversion_finished(self, success, message, engine=None):
         self.progress_bar.setValue(0)
         
         if success:
-            self.update_status("Conversion completed successfully!")
+            if engine:
+                self.update_status(f"Conversion completed successfully with {engine}!")
+            else:
+                self.update_status("Conversion completed successfully!")
             
             reply = QMessageBox.question(
                 self, 
