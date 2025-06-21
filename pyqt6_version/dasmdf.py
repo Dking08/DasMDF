@@ -9,13 +9,108 @@ This is the main PyQt6 implementation with enhanced features and capabilities.
 
 import sys
 import os
+from pathlib import Path
+import tempfile
+import webbrowser
+import markdown2
+from pygments.formatters import HtmlFormatter
+from weasyprint import HTML
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QGridLayout, QLabel, QTextEdit, QPushButton, QProgressBar, 
-    QFileDialog, QMessageBox, QComboBox, QFrame
+    QFileDialog, QMessageBox, QComboBox, QFrame, QInputDialog
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QFont
+
+class ConversionThread(QThread):
+    """Thread for handling PDF conversion to prevent UI freezing"""
+    progress_updated = pyqtSignal(float)
+    status_updated = pyqtSignal(str)
+    conversion_finished = pyqtSignal(bool, str)
+
+    def __init__(self, engine, md_content, css_content, output_path, pdf_title):
+        """Initialize the conversion thread with necessary parameters."""
+        super().__init__()
+        self.engine = engine
+        self.md_content = md_content
+        self.css_content = css_content
+        self.output_path = output_path
+        self.pdf_title = pdf_title
+
+    def run(self):
+        try:
+            if self.engine == "weasyprint":
+                self.convert_with_weasyprint()
+            else:
+                self.conversion_finished.emit(False, f"Engine will be implemented in the next version: {self.engine}")
+            
+        except Exception as e:
+            self.conversion_finished.emit(False, f"Failed to convert to PDF:\n\n{str(e)}")
+    
+    def md_to_html(self, md_content, css_content, pdfTitle="DasMDF Preview"):
+        """Convert markdown to HTML with CSS styling."""
+        # Convert markdown to HTML
+        html_body = markdown2.markdown(
+            md_content,
+            extras=[
+                'strike', 'fenced-code-blocks', 'codehilite', 'tables',
+                'toc', 'attr_list', 'latex'
+            ]
+        )
+        pygments_css = HtmlFormatter(style="default").get_style_defs(
+            '.codehilite'
+        )
+
+        # Create full HTML document
+        html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{pdfTitle}</title>
+    <style>
+    pre, code {{
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            }}
+        {css_content}
+        {pygments_css}
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+</head>
+<body>
+    {html_body}
+</body>
+</html>"""
+
+        return html_content
+
+    def convert_with_weasyprint(self):
+        self.progress_updated.emit(0.3)
+        self.status_updated.emit("Preparing conversion with weasyprint...")
+
+        self.progress_updated.emit(0.5)
+        self.status_updated.emit("[WEASYPRINT] Converting Markdown to HTML...")
+        try:
+            html_content = self.md_to_html(self.md_content, self.css_content, self.pdf_title)
+            self.progress_updated.emit(0.7)
+            self.status_updated.emit("Generating PDF with WeasyPrint...")
+
+            # Convert HTML to PDF
+            html_doc = HTML(string=html_content)
+            html_doc.write_pdf(self.output_path)
+            self.progress_updated.emit(1.0)
+            self.status_updated.emit("[WEASYPRINT] Conversion completed successfully!")
+
+            self.conversion_finished.emit(True, f"PDF saved to: {self.output_path}")
+
+        except Exception as e:
+            self.progress_updated.emit(0.0)
+            self.status_updated.emit(f"[WEASYPRINT] Conversion failed: {str(e)}")
+            self.conversion_finished.emit(False, f"Conversion failed: {str(e)}")
 
 class MarkdownToPDFConverter(QMainWindow):
     def __init__(self):
@@ -225,61 +320,136 @@ th {
         """Load a markdown file."""
         file_path, _ = QFileDialog.getOpenFileName(
             self, 
-            "Select Markdown File", 
-            "", 
+            "Select Markdown File",
+            "",
             "Markdown files (*.md *.markdown);;Text files (*.txt);;All files (*.*)"
         )
-        
         if file_path:
             try:
                 with open(file_path, 'r', encoding='utf-8') as file:
                     content = file.read()
                     self.md_textbox.setPlainText(content)
-                QMessageBox.information(self, "Success", f"Loaded: {os.path.basename(file_path)}")
+                self.update_status(f"Loaded: {Path(file_path).name}")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to load file: {str(e)}")
     
     def load_css_file(self):
         """Load a CSS file."""
         file_path, _ = QFileDialog.getOpenFileName(
-            self, 
-            "Select CSS File", 
-            "", 
+            self,
+            "Select CSS File",
+            "",
             "CSS files (*.css);;Text files (*.txt);;All files (*.*)"
         )
-        
         if file_path:
             try:
                 with open(file_path, 'r', encoding='utf-8') as file:
                     content = file.read()
                     self.css_textbox.setPlainText(content)
-                QMessageBox.information(self, "Success", f"Loaded CSS: {os.path.basename(file_path)}")
+                self.update_status(f"Loaded CSS: {Path(file_path).name}")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to load CSS file: {str(e)}")
     
     def preview_document(self):
         """Preview the document (placeholder)."""
-        QMessageBox.information(
-            self, 
-            "Preview", 
-            "Preview functionality will be implemented in the next version.\n\n"
-            "This will show a rendered preview of your markdown content."
-        )
+        try:
+            md_content = self.md_textbox.toPlainText()
+            css_content = self.css_textbox.toPlainText()
+            
+            if not md_content.strip():
+                QMessageBox.warning(self, "Warning", "No markdown content to preview!")
+                return
+            
+            html_content = ConversionThread.md_to_html(
+                self, md_content, css_content, pdfTitle="DasMDF Preview"
+            )
+            
+            with tempfile.NamedTemporaryFile(
+                mode='w', suffix='.html', delete=False, encoding='utf-8'
+            ) as f:
+                f.write(html_content)
+                temp_file = f.name
+
+            # Open in browser
+            webbrowser.open(f'file://{os.path.abspath(temp_file)}')
+            self.update_status("Preview opened in browser.")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to preview HTML: {str(e)}")
     
     def convert_to_pdf(self):
-        """Convert to PDF (placeholder)."""
+        engine = self.engine_combo.currentText()
         md_content = self.md_textbox.toPlainText().strip()
         
         if not md_content:
-            QMessageBox.warning(self, "Warning", "Please add some markdown content first.")
+            QMessageBox.critical(self, "Error", "No markdown content to convert!")
             return
         
-        QMessageBox.information(
-            self, 
-            "Convert to PDF", 
-            "PDF conversion functionality will be implemented in the next version.\n\n"
-            f"Ready to convert {len(md_content)} characters of markdown content."
+        # Get PDF title
+        pdf_title, ok = QInputDialog.getText(self, "Save as PDF", "Please enter a title for your PDF:")
+        if not ok:
+            self.update_status("PDF conversion cancelled.")
+            return
+        if not pdf_title:
+            pdf_title = "DasMDF Document"
+        
+        # Get output path
+        output_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save PDF As",
+            "",
+            "PDF files (*.pdf);;All files (*.*)"
         )
+        
+        if not output_path:
+            self.update_status("PDF conversion cancelled.")
+            return
+        
+        css_content = self.css_textbox.toPlainText()
+        
+        # Create and start conversion thread
+        self.conversion_thread = ConversionThread(
+            engine, md_content, css_content, output_path, pdf_title
+        )
+        # Connect signals
+        self.conversion_thread.progress_updated.connect(self.update_progress)
+        self.conversion_thread.status_updated.connect(self.update_status)
+        self.conversion_thread.conversion_finished.connect(self.on_conversion_finished)
+        
+        self.conversion_thread.start()
+
+    def update_status(self, message):
+        self.status_label.setText(message)
+        QApplication.processEvents()
+
+    def update_progress(self, value):
+        self.progress_bar.setValue(int(value * 100))
+    
+    def on_conversion_finished(self, success, message):
+        self.progress_bar.setValue(0)
+        
+        if success:
+            self.update_status("Conversion completed successfully!")
+            
+            reply = QMessageBox.question(
+                self, 
+                "Success", 
+                f"PDF created successfully!\n\nFile: {message.split(': ')[-1]}\n\nOpen the file now?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                output_path = self.conversion_thread.output_path
+                if os.name == 'nt':
+                    os.startfile(output_path)
+                elif sys.platform == 'darwin':
+                    subprocess.run(['open', output_path])
+                else:
+                    subprocess.run(['xdg-open', output_path])
+        else:
+            QMessageBox.critical(self, "Error", message)
+        
+        self.update_status("Ready to convert")
 
 def main():
     """Main entry point."""
