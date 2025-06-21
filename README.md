@@ -18,9 +18,11 @@
 
 ```plaintext
 DasMDF/
-├── pyqt6\_version/
+├── pyqt6_version/
 │   ├── dasmdf.py
-│   └── requirements.txt
+│   ├── requirements.txt
+│   └── icon/
+│       └── icon.png
 ├── ctk\_version/   ← Legacy version (CustomTkinter)
 │   ├── dasmdf.py
 │   └── requirements.txt

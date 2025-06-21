@@ -20,7 +20,7 @@ import pdfkit
 from playwright.async_api import async_playwright
 from pygments.formatters import HtmlFormatter
 from PyQt6.QtCore import QThread, Qt, pyqtSignal
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtWidgets import (
     QApplication, QComboBox, QFileDialog, QFrame, QGridLayout,
     QHBoxLayout, QInputDialog, QLabel, QMainWindow, QMessageBox,
@@ -287,6 +287,7 @@ class MarkdownToPDFConverter(QMainWindow):
         self.setWindowTitle("DasMDF - Markdown to PDF Converter")
         self.setGeometry(100, 100, 1200, 800)
         self.setMinimumSize(800, 600)
+        self.setWindowIcon(QIcon("icon/icon_dasmdf.ico"))
 
     def create_widgets(self):
         """Create and arrange the GUI widgets."""
