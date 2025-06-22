@@ -19,7 +19,7 @@ import markdown2
 import pdfkit
 from playwright.async_api import async_playwright
 from pygments.formatters import HtmlFormatter
-from PyQt6.QtCore import QThread, Qt, pyqtSignal
+from PyQt6.QtCore import QThread, Qt, pyqtSignal, QMimeData
 from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtWidgets import (
     QApplication, QComboBox, QFileDialog, QFrame, QGridLayout,
@@ -271,6 +271,12 @@ class ConversionThread(QThread):
                 False, f"Conversion failed: {str(e)}"
             )
 
+class PlainTextEdit(QTextEdit):
+    def insertFromMimeData(self, source: QMimeData):
+        if source.hasText():
+            self.insertPlainText(source.text())
+        else:
+            super().insertFromMimeData(source)
 
 class MarkdownToPDFConverter(QMainWindow):
     """Main application window for the Markdown to PDF converter."""
@@ -334,7 +340,9 @@ class MarkdownToPDFConverter(QMainWindow):
         md_label.setFont(md_font)
         content_layout.addWidget(md_label, 0, 0)
 
-        self.md_textbox = QTextEdit()
+        # Markdown textbox with monospace font
+        # Use PlainTextEdit for better handling of pasted text
+        self.md_textbox = PlainTextEdit()
         mono_font = QFont("Consolas", 10)
         self.md_textbox.setFont(mono_font)
         content_layout.addWidget(self.md_textbox, 1, 0)
